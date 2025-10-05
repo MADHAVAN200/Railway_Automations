@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RailSync AI - Passenger Communication</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .announcement-active {
+            border-left: 4px solid #2563eb;
+            background-color: #f0f7ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg text-white py-8 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Passenger Communication Agent</h1>
+                    <p class="text-lg opacity-90">Multilingual real-time announcements and information dissemination</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm opacity-80" id="datetime">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto py-8 px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Live Announcement Display</h2>
+                    <div class="flex space-x-2">
+                        <button id="toggleMode" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm">
+                            Semi-Auto Mode
+                        </button>
+                        <button id="testAnnouncement" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                            Test Announcement
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-900 text-white p-4 rounded-lg font-mono h-64 overflow-y-auto" id="announcementDisplay">
+                    <div class="text-green-400">*** Station Announcement System ***</div>
+                    <div class="text-gray-400 mt-2">System ready. Awaiting announcements...</div>
+                </div>
+
+                <div class="mt-4">
+                    <h3 class="text-lg font-medium mb-2">Create Manual Announcement</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                            <select class="w-full rounded-md border-gray-300 shadow-sm">
+                                <option>English</option>
+                                <option>Hindi</option>
+                                <option>Marathi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                            <select class="w-full rounded-md border-gray-300 shadow-sm">
+                                <option>Normal</option>
+                                <option>Important</option>
+                                <option>Emergency</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <textarea class="w-full rounded-md border-gray-300 shadow-sm h-24" placeholder="Type your announcement here..."></textarea>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm">
+                            Preview
+                        </button>
+                        <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                            Broadcast
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Recent Announcements</h2>
+                    <div class="space-y-3" id="recentAnnouncements">
+                        <div class="p-3 border rounded-lg announcement-active">
+                            <div class="flex justify-between">
+                                <h3 class="font-medium">Platform Change</h3>
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Active</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Train 12951 Rajdhani now departing from Platform 3</p>
+                            <div class="flex justify-between mt-2">
+                                <span class="text-xs text-gray-500">14:25:42</span>
+                                <span class="text-xs text-gray-500">Auto</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border rounded-lg">
+                            <div class="flex justify-between">
+                                <h3 class="font-medium">Delay Announcement</h3>
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Past</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Train 12138 Shatabdi delayed by 25 minutes</p>
+                            <div class="flex justify-between mt-2">
+                                <span class="text-xs text-gray-500">14:10:15</span>
+                                <span class="text-xs text-gray-500">Auto</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border rounded-lg">
+                            <div class="flex justify-between">
+                                <h3 class="font-medium">Safety Reminder</h3>
+                                <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Past</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Please stand behind the yellow line</p>
+                            <div class="flex justify-between mt-2">
+                                <span class="text-xs text-gray-500">13:55:30</span>
+                                <span class="text-xs text-gray-500">Scheduled</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Announcement Statistics</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Today's Announcements</p>
+                            <p class="text-2xl font-bold">24</p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Automated</p>
+                            <p class="text-2xl font-bold">18</p>
+                        </div>
+                        <div class="bg-yellow-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Manual</p>
+                            <p class="text-2xl font-bold">4</p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Languages Used</p>
+                            <p class="text-2xl font-bold">3</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Announcement Log</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Languages</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="announcementLogBody">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">14:25:42</td>
+                            <td class="px-6 py-4 whitespace-nowrap">Platform Change</td>
+                            <td class="px-6 py-4">Train 12951 Rajdhani now departing from Platform 3</td>
+                            <td class="px-6 py-4 whitespace-nowrap">EN, HI, MR</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">Auto</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">Train Scheduling Agent</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">14:10:15</td>
+                            <td class="px-6 py-4 whitespace-nowrap">Delay Announcement</td>
+                            <td class="px-6 py-4">Train 12138 Shatabdi delayed by 25 minutes</td>
+                            <td class="px-6 py-4 whitespace-nowrap">EN, HI, MR</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">Auto</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">Disruption Agent</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">13:55:30</td>
+                            <td class="px-6 py-4 whitespace-nowrap">Safety Reminder</td>
+                            <td class="px-6 py-4">Please stand behind the yellow line</td>
+                            <td class="px-6 py-4 whitespace-nowrap">EN, HI, MR</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded">Scheduled</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">System Timer</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update datetime
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('datetime').textContent = now.toLocaleString('en-IN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Asia/Kolkata'
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            feather.replace();
+
+            // Event listeners
+            document.getElementById('toggleMode').addEventListener('click', function() {
+                const button = this;
+                if (button.textContent === 'Semi-Auto Mode') {
+                    button.textContent = 'Fully Auto Mode';
+                    button.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                    button.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+                } else {
+                    button.textContent = 'Semi-Auto Mode';
+                    button.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+                    button.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                }
+            });
+
+            document.getElementById('testAnnouncement').addEventListener('click', function() {
+                const display = document.getElementById('announcementDisplay');
+                display.innerHTML += '<div class="text-yellow-300 mt-2">[TEST] This is a test announcement. Please ignore.</div>';
+                display.scrollTop = display.scrollHeight;
+                
+                // Simulate announcement in all languages
+                const recentContainer = document.getElementById('recentAnnouncements');
+                const testDiv = document.createElement('div');
+                testDiv.className = 'p-3 border rounded-lg announcement-active';
+                testDiv.innerHTML = `
+                    <div class="flex justify-between">
+                        <h3 class="font-medium">Test Announcement</h3>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Active</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">This is a test announcement. Please ignore.</p>
+                    <div class="flex justify-between mt-2">
+                        <span class="text-xs text-gray-500">${new Date().toLocaleTimeString('en-IN', {hour: '2-digit', minute:'2-digit', second:'2-digit'})}</span>
+                        <span class="text-xs text-gray-500">Manual</span>
+                    </div>
+                `;
+                recentContainer.insertBefore(testDiv, recentContainer.firstChild);
+                
+                // Remove active class from previous announcements
+                document.querySelectorAll('#recentAnnouncements > div').forEach(div => {
+                    if (div !== testDiv) {
+                        div.classList.remove('announcement-active');
+                        div.querySelector('span').className = 'text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded';
+                        div.querySelector('span').textContent = 'Past';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

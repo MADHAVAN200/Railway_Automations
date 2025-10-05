@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RailSync AI - Interactive Simulation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .simulation-chart {
+            height: 500px;
+            width: 100%;
+        }
+        .scenario-active {
+            border-left: 4px solid #2563eb;
+            background-color: #f0f7ff;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg text-white py-8 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Interactive Simulation</h1>
+                    <p class="text-lg opacity-90">Experiment with timetable changes and see real-time impacts</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm opacity-80" id="datetime">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto py-8 px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div class="lg:col-span-3 bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Schedule Simulation</h2>
+                    <div class="flex space-x-2">
+                        <button id="runSimulation" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                            Run Simulation
+                        </button>
+                        <button id="resetSimulation" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div id="simulationChart" class="simulation-chart"></div>
+                
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="text-lg font-medium mb-3">Before Changes</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-xs text-gray-500">Total Delay</p>
+                                <p class="text-2xl font-bold">78<span class="text-sm font-normal"> min</span></p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Platform Utilization</p>
+                                <p class="text-2xl font-bold">72%</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Passenger Impact</p>
+                                <p class="text-2xl font-bold">840</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="text-lg font-medium mb-3">After Simulation</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <p class="text-xs text-gray-500">Total Delay</p>
+                                <p class="text-2xl font-bold">64<span class="text-sm font-normal"> min</span></p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Platform Utilization</p>
+                                <p class="text-2xl font-bold">78%</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-gray-500">Passenger Impact</p>
+                                <p class="text-2xl font-bold">720</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Simulation Controls</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Train Type</label>
+                            <select class="w-full rounded-md border-gray-300 shadow-sm">
+                                <option>Express</option>
+                                <option>Fast Local</option>
+                                <option>Slow Local</option>
+                                <option>Freight</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Priority (1-10)</label>
+                            <input type="range" min="1" max="10" value="5" class="w-full">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Arrival Time</label>
+                            <input type="time" class="w-full rounded-md border-gray-300 shadow-sm" value="15:30">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dwell Time (min)</label>
+                            <input type="number" min="1" max="30" value="5" class="w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Preferred Platform</label>
+                            <select class="w-full rounded-md border-gray-300 shadow-sm">
+                                <option>Any</option>
+                                <option>Platform 1</option>
+                                <option>Platform 2</option>
+                                <option>Platform 3</option>
+                                <option>Platform 4</option>
+                                <option>Platform 5</option>
+                            </select>
+                        </div>
+                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm mt-4">
+                            Add Train to Simulation
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Saved Scenarios</h2>
+                    <div class="space-y-3" id="savedScenarios">
+                        <div class="p-3 border rounded-lg scenario-active">
+                            <div class="flex justify-between">
+                                <h3 class="font-medium">Express Priority</h3>
+                                <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Active</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Priority to express trains</p>
+                            <div class="flex justify-between mt-2">
+                                <span class="text-xs text-gray-500">Today, 11:42</span>
+                                <span class="text-xs text-gray-500">-34 min delay</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border rounded-lg">
+                            <h3 class="font-medium">Peak Hours</h3>
+                            <p class="text-sm text-gray-600 mt-1">High frequency schedule</p>
+                            <div class="flex justify-between mt-2">
+                                <span class="text-xs text-gray-500">Yesterday, 16:30</span>
+                                <span class="text-xs text-gray-500">+12% utilization</span>
+                            </div>
+                        </div>
+                        <div class="p-3 border rounded-lg">
+                            <h3 class="font-medium">Maintenance Window</h3>
+                            <p class="text-sm text-gray-600 mt-1">Platform 4 blocked</p>
+                            <div class="flex justify-between mt-2">
+                                <span class="text-xs text-gray-500">Mar 12, 09:15</span>
+                                <span class="text-xs text-gray-500">5 swaps</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Simulation Log</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Train</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Impact</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="simulationLogBody">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">14:25:42</td>
+                            <td class="px-6 py-4 whitespace-nowrap">Added Train</td>
+                            <td class="px-6 py-4">12951 Rajdhani (Express)</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">-14 min delay</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">Admin</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">14:10:15</td>
+                            <td class="px-6 py-4 whitespace-nowrap">Changed Priority</td>
+                            <td class="px-6 py-4">12138 Shatabdi (8 → 9)</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">-8 min delay</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">Operator</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">13:55:30</td>
+                            <td class="px-6 py-4 whitespace-nowrap">Platform Block</td>
+                            <td class="px-6 py-4">Platform 3 (Maintenance)</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">+3 swaps</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">Admin</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Simulation Chart
+        function initSimulationChart() {
+            const data = [
+                {
+                    name: 'Original Schedule',
+                    x: ['Train A', 'Train B', 'Train C', 'Train D', 'Train E'],
+                    y: ['14:00', '14:30', '15:00', '15:30', '16:00'],
+                    type: 'bar',
+                    marker: {
+                        color: 'rgba(55, 128, 191, 0.7)'
+                    }
+                },
+                {
+                    name: 'Simulated Schedule',
+                    x: ['Train A', 'Train B', 'Train C', 'Train D', 'Train E', 'Train F'],
+                    y: ['14:05', '14:35', '15:05', '15:35', '16:05', '16:20'],
+                    type: 'bar',
+                    marker: {
+                        color: 'rgba(50, 171, 96, 0.7)'
+                    }
+                }
+            ];
+
+            const layout = {
+                title: 'Schedule Comparison (Original vs Simulated)',
+                barmode: 'group',
+                yaxis: {
+                    title: 'Departure Time',
+                    type: 'date',
+                    tickformat: '%H:%M'
+                },
+                xaxis: {
+                    title: 'Trains'
+                }
+            };
+
+            Plotly.newPlot('simulationChart', data, layout);
+        }
+
+        // Update datetime
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('datetime').textContent = now.toLocaleString('en-IN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Asia/Kolkata'
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            feather.replace();
+            initSimulationChart();
+
+            // Event listeners
+            document.getElementById('runSimulation').addEventListener('click', function() {
+                alert('Running simulation with current parameters...');
+                // Simulate optimization
+                setTimeout(() => {
+                    alert('Simulation complete! Schedule updated with new KPIs.');
+                }, 2000);
+            });
+
+            document.getElementById('resetSimulation').addEventListener('click', function() {
+                if (confirm('Reset all changes and return to original schedule?')) {
+                    alert('Simulation reset to original timetable.');
+                }
+            });
+
+            // Scenario selection
+            const scenarios = document.querySelectorAll('#savedScenarios > div');
+            scenarios.forEach(scenario => {
+                scenario.addEventListener('click', function() {
+                    scenarios.forEach(s => s.classList.remove('scenario-active', 'bg-blue-50'));
+                    scenarios.forEach(s => {
+                        const badge = s.querySelector('span');
+                        if (badge && badge.textContent === 'Active') {
+                            badge.className = 'text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded';
+                            badge.textContent = 'Inactive';
+                        }
+                    });
+                    
+                    this.classList.add('scenario-active', 'bg-blue-50');
+                    const activeBadge = this.querySelector('span');
+                    if (activeBadge) {
+                        activeBadge.className = 'text-xs bg-green-100 text-green-800 px-2 py-1 rounded';
+                        activeBadge.textContent = 'Active';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

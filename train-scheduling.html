@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RailSync AI - Train Scheduling</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .gantt-chart {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="gradient-bg text-white py-8 px-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">Train Scheduling Agent</h1>
+                    <p class="text-lg opacity-90">Dynamic MILP-based scheduling optimizer</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm opacity-80" id="datetime">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto py-8 px-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">Schedule Timeline</h2>
+                    <div class="flex space-x-2">
+                        <button id="runOptimizer" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
+                            Run Optimizer
+                        </button>
+                        <button id="toggleMode" class="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-sm">
+                            Semi-Auto Mode
+                        </button>
+                    </div>
+                </div>
+                <div id="ganttChart" class="gantt-chart"></div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">Schedule Options</h2>
+                    <div id="scheduleOptions" class="space-y-4">
+                        <div class="p-4 border rounded-lg cursor-pointer hover:bg-blue-50">
+                            <div class="flex justify-between">
+                                <h3 class="font-medium">Minimize Delays</h3>
+                                <span class="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">Recommended</span>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Total delay: 34 min (vs 126 min current)</p>
+                            <p class="text-xs text-gray-500">Affects 6 trains</p>
+                        </div>
+                        <div class="p-4 border rounded-lg cursor-pointer hover:bg-blue-50">
+                            <h3 class="font-medium">Minimize Changes</h3>
+                            <p class="text-sm text-gray-600 mt-1">Total delay: 78 min (vs 126 min current)</p>
+                            <p class="text-xs text-gray-500">Affects 3 trains</p>
+                        </div>
+                        <div class="p-4 border rounded-lg cursor-pointer hover:bg-blue-50">
+                            <h3 class="font-medium">Priority Weighted</h3>
+                            <p class="text-sm text-gray-600 mt-1">Total delay: 42 min (vs 126 min current)</p>
+                            <p class="text-xs text-gray-500">Affects 5 trains</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-semibold mb-4">KPIs</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Total Delay</p>
+                            <p class="text-2xl font-bold">126<span class="text-sm font-normal"> min</span></p>
+                        </div>
+                        <div class="bg-green-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">On-time Trains</p>
+                            <p class="text-2xl font-bold">4/10</p>
+                        </div>
+                        <div class="bg-yellow-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Max Delay</p>
+                            <p class="text-2xl font-bold">28<span class="text-sm font-normal"> min</span></p>
+                        </div>
+                        <div class="bg-purple-50 p-3 rounded-lg">
+                            <p class="text-xs text-gray-500">Slot Utilization</p>
+                            <p class="text-2xl font-bold">72%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Train List</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Train ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estimated</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delay</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Platform</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">12951 Rajdhani</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">On Time</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">14:30</td>
+                            <td class="px-6 py-4 whitespace-nowrap">14:30</td>
+                            <td class="px-6 py-4 whitespace-nowrap">0 min</td>
+                            <td class="px-6 py-4 whitespace-nowrap">5</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">12138 Shatabdi</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">Delayed</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">14:45</td>
+                            <td class="px-6 py-4 whitespace-nowrap">15:13</td>
+                            <td class="px-6 py-4 whitespace-nowrap">28 min</td>
+                            <td class="px-6 py-4 whitespace-nowrap">-</td>
+                        </tr>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">11077 Jhelum</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">Critical</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">15:00</td>
+                            <td class="px-6 py-4 whitespace-nowrap">15:25</td>
+                            <td class="px-6 py-4 whitespace-nowrap">25 min</td>
+                            <td class="px-6 py-4 whitespace-nowrap">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Gantt Chart
+        function initGanttChart() {
+            const data = [
+                {
+                    x: ['Platform 1', 'Platform 2', 'Platform 3', 'Platform 4', 'Platform 5'],
+                    y: ['14:00', '14:30', '15:00', '15:30', '16:00'],
+                    type: 'bar',
+                    orientation: 'h',
+                    marker: {
+                        color: 'rgba(55, 128, 191, 0.6)',
+                        line: {
+                            color: 'rgba(55, 128, 191, 1.0)',
+                            width: 1
+                        }
+                    }
+                }
+            ];
+
+            const layout = {
+                title: 'Track Allocation',
+                barmode: 'stack',
+                xaxis: {
+                    title: 'Time',
+                    type: 'date',
+                    tickformat: '%H:%M'
+                },
+                yaxis: {
+                    title: 'Platform'
+                }
+            };
+
+            Plotly.newPlot('ganttChart', data, layout);
+        }
+
+        // Update datetime
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('datetime').textContent = now.toLocaleString('en-IN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Asia/Kolkata'
+            });
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            feather.replace();
+            initGanttChart();
+
+            // Event listeners
+            document.getElementById('runOptimizer').addEventListener('click', function() {
+                alert('Running MILP optimizer... This may take a few seconds.');
+                // Simulate optimization
+                setTimeout(() => {
+                    alert('Optimization complete! 3 schedule options generated.');
+                }, 2000);
+            });
+
+            document.getElementById('toggleMode').addEventListener('click', function() {
+                const button = this;
+                if (button.textContent === 'Semi-Auto Mode') {
+                    button.textContent = 'Fully Auto Mode';
+                    button.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                    button.classList.add('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+                } else {
+                    button.textContent = 'Semi-Auto Mode';
+                    button.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'text-white');
+                    button.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                }
+            });
+
+            // Schedule option selection
+            const options = document.querySelectorAll('#scheduleOptions > div');
+            options.forEach(option => {
+                option.addEventListener('click', function() {
+                    options.forEach(opt => opt.classList.remove('border-blue-400', 'bg-blue-50'));
+                    this.classList.add('border-blue-400', 'bg-blue-50');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
