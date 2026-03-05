@@ -154,6 +154,46 @@ body {
   margin: 0;
 }
 
+/* ── Custom Scrollbars — Dark Mode ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a3a52;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a5272;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--bg-dark);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: #e8eff8;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #b0c4de;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #8aaac8;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-corner {
+  background: #e8eff8;
+}
+
+
 /* Layout Framework */
 .layout-container {
   display: flex;

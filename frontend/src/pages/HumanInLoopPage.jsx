@@ -1,227 +1,192 @@
 import React, { useState } from 'react';
-import { CheckCircle, XCircle, Edit, AlertTriangle, Zap, TrendingDown, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, Edit3, AlertTriangle, Brain, Clock, TrendingUp } from 'lucide-react';
 
 const recommendations = [
-    {
-        id: 'REC-001',
-        issue: 'Platform conflict detected at NDLS PF-02: 12002 Shatabdi and 12221 Duronto arrive within 3-min buffer.',
-        action: 'Reroute 12221 Duronto to PF-07. Signal clearance available. No ripple delays.',
-        delay_reduction: '22 min',
-        confidence: 94,
-        trains: ['12002', '12221'],
-        priority: 'HIGH',
-        reasoning: 'Historical data shows PF-02 bottleneck affects 3 subsequent trains. PF-07 has 12-min vacancy after last shunting.'
-    },
-    {
-        id: 'REC-002',
-        issue: 'Weather advisory issued for Rajasthan sector. Wind speed 62 km/h may delay 2 Rajdhani services.',
-        action: 'Reduce speed of 12301 Howrah Rajdhani to 90 km/h through JP-NDLS sector. Adjust ETA.',
-        delay_reduction: '15 min',
-        confidence: 87,
-        trains: ['12301'],
-        priority: 'MEDIUM',
-        reasoning: 'Speed reduction prevents emergency braking events. Controlled deceleration maintains schedule adherence within ±8 min.'
-    },
-    {
-        id: 'REC-003',
-        issue: 'Track maintenance window at BPL sector conflicts with Tamil Nadu Express departure.',
-        action: 'Delay 12622 departure from NDLS by 8 minutes. Coordination with BPL Maintenance Control confirmed.',
-        delay_reduction: '44 min',
-        confidence: 98,
-        trains: ['12622'],
-        priority: 'HIGH',
-        reasoning: 'Without delay, train enters maintenance zone at T+12m. Forced stop adds 52m delay. Controlled 8m delay avoids conflict entirely.'
-    },
-    {
-        id: 'REC-004',
-        issue: 'Signal failure at Junction East-2, Hazrat Nizamuddin. 3 trains on approach.',
-        action: 'Engage manual override at Nizamuddin interlocking. Route 12302 via track 6B at reduced speed.',
-        delay_reduction: '18 min',
-        confidence: 79,
-        trains: ['12302', '12423'],
-        priority: 'CRITICAL',
-        reasoning: 'Signal failure requires manual intervention. Track 6B is clear for 14-min window. Delaying beyond 14m causes cascading delays.'
-    },
+    { id: 'HIL-0431', type: 'REROUTE', priority: 'CRITICAL', train: '12002 Bhopal Shatabdi', action: 'Reroute to PF-06 NDLS — avoids 22-min conflict with Duronto.', confidence: 94, trainCount: 840, delay: '−22 min' },
+    { id: 'HIL-0430', type: 'SCHEDULE', priority: 'HIGH', train: '12221 Pune Duronto', action: 'Delay departure by 8 min to create buffer at NDLS yard.', confidence: 87, trainCount: 520, delay: '−8 min' },
+    { id: 'HIL-0429', type: 'PLATFORM', priority: 'HIGH', train: '22415 Vande Bharat', action: 'Reassign platform PF-02 → PF-04 for better passenger access.', confidence: 91, trainCount: 640, delay: '0 min' },
+    { id: 'HIL-0428', type: 'SPEED', priority: 'MEDIUM', train: '12301 Howrah Rajdhani', action: 'Maintain 95 km/h through Mathura-Agra sector (wave effect buffer).', confidence: 79, trainCount: 720, delay: '−5 min' },
+    { id: 'HIL-0427', type: 'COMMS', priority: 'MEDIUM', train: '12461 Mandore Express', action: 'Broadcast 30-min delay in Hindi + Rajasthani to PF-08 screens.', confidence: 100, trainCount: 380, delay: '0 min' },
+    { id: 'HIL-0426', type: 'REROUTE', priority: 'HIGH', train: '12953 Mumbai Rajdhani', action: 'Loop via Mathura Jn to bypass congested Agra Cantt throat.', confidence: 83, trainCount: 890, delay: '−14 min' },
+    { id: 'HIL-0425', type: 'SCHEDULE', priority: 'LOW', train: '12555 Gorakhdham Express', action: 'Advance departure by 5 min from NDLS to avoid peak PF congestion.', confidence: 76, trainCount: 430, delay: '+5 min' },
+    { id: 'HIL-0424', type: 'ENERGY', priority: 'LOW', train: '—', action: 'Idle PF-12 lighting at Nizamuddin during 20-min service gap.', confidence: 100, trainCount: 0, delay: '0 min' },
+    { id: 'HIL-0423', type: 'PLATFORM', priority: 'MEDIUM', train: '12381 Kolkata Rajdhani', action: 'Combine PF-03 and PF-03A coaches to reduce dwell time.', confidence: 82, trainCount: 610, delay: '−6 min' },
+    { id: 'HIL-0422', type: 'SPEED', priority: 'CRITICAL', train: '12621 Tamil Nadu Express', action: 'Emergency speed advisory: reduce to 80 km/h at Junction East-2.', confidence: 99, trainCount: 760, delay: 'Prevent' },
 ];
 
-const statusColors = { HIGH: 'yellow', MEDIUM: 'blue', CRITICAL: 'red' };
+const decisions = [
+    { id: 'HIL-0421', action: 'Approved', train: '12311 Kalka Mail', type: 'REROUTE', operator: 'Rajesh Kumar', ts: '19:35' },
+    { id: 'HIL-0420', action: 'Rejected', train: '12459 Raj. Sampark Krt', type: 'PLATFORM', operator: 'Priya Sharma', ts: '19:28' },
+    { id: 'HIL-0419', action: 'Approved', train: '12001 New Bhopal Shatabdi', type: 'SCHEDULE', operator: 'Arjun Mehta', ts: '19:21' },
+    { id: 'HIL-0418', action: 'Modified', train: '12263 Pune Duronto', type: 'SPEED', operator: 'Sandeep Rao', ts: '19:14' },
+    { id: 'HIL-0417', action: 'Approved', train: '22691 Rajdhani Premium', type: 'REROUTE', operator: 'Rajesh Kumar', ts: '19:08' },
+];
+
+const typeColors = { REROUTE: 'blue', SCHEDULE: 'yellow', PLATFORM: 'green', SPEED: 'red', COMMS: 'blue', ENERGY: 'green' };
+const priorityColors = { CRITICAL: 'red', HIGH: 'yellow', MEDIUM: 'blue', LOW: 'green' };
+
+// Approval rate donut
+const DonutChart = ({ pct, color }) => {
+    const r = 28, circ = 2 * Math.PI * r;
+    return (
+        <svg width="72" height="72" viewBox="0 0 72 72">
+            <circle cx="36" cy="36" r={r} fill="none" stroke="var(--border-color)" strokeWidth="7" />
+            <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="7"
+                strokeDasharray={`${pct / 100 * circ} ${circ}`} strokeLinecap="round" transform="rotate(-90 36 36)" />
+            <text x="36" y="40" fontSize="12" fontWeight="700" fill={color} textAnchor="middle">{pct}%</text>
+        </svg>
+    );
+};
 
 export default function HumanInLoopPage() {
-    const [decisions, setDecisions] = useState({});
-    const [selected, setSelected] = useState(null);
+    const [selected, setSelected] = useState(recommendations[0]);
+    const [decisionLog, setDecisionLog] = useState(decisions);
 
-    const decide = (id, val) => setDecisions(d => ({ ...d, [id]: val }));
-
-    const selectedRec = recommendations.find(r => r.id === selected);
+    const takeAction = (action) => {
+        const now = new Date();
+        const ts = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        setDecisionLog(prev => [{
+            id: selected.id, action, train: selected.train, type: selected.type, operator: 'Rajesh Kumar', ts
+        }, ...prev.slice(0, 9)]);
+        const idx = recommendations.indexOf(selected);
+        if (recommendations[idx + 1]) setSelected(recommendations[idx + 1]);
+    };
 
     return (
         <div className="view-wrapper">
             <main className="page-content">
-                <div className="hil-layout">
 
-                    {/* Recommendations List */}
-                    <div className="hil-list-panel">
-                        <div className="hil-panel-header">
-                            <Zap size={14} className="text-blue" />
-                            AI RECOMMENDATIONS — AWAITING APPROVAL
-                            <span className="hil-badge">{recommendations.filter(r => !decisions[r.id]).length} Pending</span>
+                {/* KPI Row */}
+                <div className="audit-kpi-row" style={{ marginBottom: '16px' }}>
+                    {[
+                        { label: 'Pending Decisions', value: recommendations.length, color: 'blue' },
+                        { label: 'Approved Today', value: 34, color: 'green' },
+                        { label: 'Rejected Today', value: 8, color: 'red' },
+                        { label: 'Auto-Resolved', value: 61, color: 'yellow' },
+                    ].map((k, i) => (
+                        <div className="card" key={i} style={{ padding: '16px 20px' }}>
+                            <div className="db-kpi-header"><span>{k.label}</span></div>
+                            <div className="db-kpi-value">{k.value}</div>
                         </div>
+                    ))}
+                </div>
 
-                        <div className="hil-rec-list">
-                            {recommendations.map(rec => (
-                                <div
-                                    key={rec.id}
-                                    className={`card hil-rec-card ${selected === rec.id ? 'selected' : ''} ${decisions[rec.id] ? `decided-${decisions[rec.id]}` : ''}`}
-                                    onClick={() => setSelected(rec.id)}
-                                >
-                                    <div className="hil-rec-header">
-                                        <span className="hil-rec-id">{rec.id}</span>
-                                        <span className={`hil-priority-badge ${statusColors[rec.priority]}`}>{rec.priority}</span>
-                                        <span className="hil-confidence"><TrendingDown size={11} /> {rec.confidence}% confidence</span>
-                                        {decisions[rec.id] && (
-                                            <span className={`hil-decided-badge ${decisions[rec.id]}`}>
-                                                {decisions[rec.id] === 'approved' ? '✓ APPROVED' : decisions[rec.id] === 'rejected' ? '✗ REJECTED' : '✎ MODIFIED'}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="hil-issue-text">{rec.issue}</div>
-                                    <div className="hil-action-preview">
-                                        <Zap size={11} className="text-blue" /> {rec.action.substring(0, 80)}…
-                                    </div>
-                                    <div className="hil-rec-meta">
-                                        <span className="hil-meta-item"><Clock size={10} /> −{rec.delay_reduction} delay</span>
-                                        <span className="hil-meta-trains">Trains: {rec.trains.join(', ')}</span>
-                                    </div>
-
-                                    {!decisions[rec.id] && (
-                                        <div className="hil-quick-actions" onClick={e => e.stopPropagation()}>
-                                            <button className="hil-btn approve" onClick={() => decide(rec.id, 'approved')}>
-                                                <CheckCircle size={13} /> Approve
-                                            </button>
-                                            <button className="hil-btn reject" onClick={() => decide(rec.id, 'rejected')}>
-                                                <XCircle size={13} /> Reject
-                                            </button>
-                                            <button className="hil-btn modify" onClick={() => decide(rec.id, 'modified')}>
-                                                <Edit size={13} /> Modify
-                                            </button>
+                <div className="hil-layout">
+                    {/* Recommendations List */}
+                    <div className="hil-list-col">
+                        <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <div className="section-header"><div className="header-title"><Brain size={14} className="text-blue" /> AI RECOMMENDATIONS — {recommendations.length} PENDING</div></div>
+                            <div style={{ overflowY: 'auto', flex: 1 }}>
+                                {recommendations.map(r => (
+                                    <div
+                                        key={r.id}
+                                        className={`hil-rec-card ${selected?.id === r.id ? 'active' : ''}`}
+                                        onClick={() => setSelected(r)}
+                                    >
+                                        <div className="hil-rec-header">
+                                            <span className="train-id-badge bg-blue-dim" style={{ fontSize: '9px' }}>{r.id}</span>
+                                            <span className={`hil-priority-badge ${priorityColors[r.priority]}`}>{r.priority}</span>
                                         </div>
-                                    )}
-                                </div>
-                            ))}
+                                        <div className="hil-issue-text">{r.train}</div>
+                                        <div className="hil-action-preview">{r.action.slice(0, 60)}…</div>
+                                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                                            <span className={`audit-type-badge ${typeColors[r.type]}`} style={{ fontSize: '8px' }}>{r.type}</span>
+                                            <span className="text-green" style={{ fontSize: '10px', fontWeight: '700' }}>{r.delay}</span>
+                                            <span className="text-muted" style={{ fontSize: '10px', marginLeft: 'auto' }}>{r.confidence}% conf.</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Decision Preview Panel */}
-                    {selectedRec ? (
-                        <div className="hil-detail-panel">
-                            <div className="card hil-detail-card">
-                                <div className="hil-detail-header">
-                                    <span className="hil-rec-id">{selectedRec.id}</span>
-                                    <span className={`hil-priority-badge ${statusColors[selectedRec.priority]}`}>{selectedRec.priority}</span>
+                    {/* Detail Panel */}
+                    {selected && (
+                        <div className="hil-detail-col">
+                            <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                                <div className="section-header space-between">
+                                    <div className="header-title"><Brain size={14} className="text-blue" /> DECISION — {selected.id}</div>
+                                    <span className={`hil-priority-badge ${priorityColors[selected.priority]}`}>{selected.priority}</span>
                                 </div>
+                                <div className="hil-detail-body" style={{ padding: '20px', flex: 1, overflowY: 'auto' }}>
+                                    <div className="hil-detail-grid">
+                                        <div className="hil-detail-block"><div className="hil-detail-label">TRAIN</div><div className="hil-issue-text">{selected.train}</div></div>
+                                        <div className="hil-detail-block"><div className="hil-detail-label">AI CONFIDENCE</div><div className="db-kpi-value" style={{ fontSize: '22px' }}>{selected.confidence}%</div></div>
+                                        <div className="hil-detail-block"><div className="hil-detail-label">PASSENGERS AFFECTED</div><div className="db-kpi-value" style={{ fontSize: '22px' }}>{selected.trainCount.toLocaleString()}</div></div>
+                                        <div className="hil-detail-block"><div className="hil-detail-label">DELAY IMPACT</div><div className="db-kpi-value text-green" style={{ fontSize: '22px' }}>{selected.delay}</div></div>
+                                    </div>
 
-                                <div className="hil-detail-section">
-                                    <div className="hil-detail-label"><AlertTriangle size={12} /> ISSUE DETECTED</div>
-                                    <p className="hil-detail-body">{selectedRec.issue}</p>
+                                    <div style={{ marginTop: '20px' }}>
+                                        <div className="hil-detail-label">RECOMMENDED ACTION</div>
+                                        <div className="hil-reasoning-box" style={{ marginTop: '8px', fontSize: '12px', lineHeight: '1.6' }}>{selected.action}</div>
+                                    </div>
+
+                                    <div style={{ marginTop: '16px' }}>
+                                        <div className="hil-detail-label">GENAI REASONING</div>
+                                        <div className="hil-reasoning-box" style={{ marginTop: '8px', fontSize: '11px', lineHeight: '1.6', color: 'var(--text-muted)' }}>
+                                            RailSync AI analysed 14 days of historical conflict data at NDLS. This recommendation reduces cascade delay probability by 67%. The proposed reroute adds 4.2 km track distance but saves {selected.delay} of dwell time — net positive for passenger satisfaction index (+0.14).
+                                        </div>
+                                    </div>
+
+                                    <div className="hil-action-buttons" style={{ marginTop: '20px', display: 'flex', gap: '8px' }}>
+                                        <button className="hil-approve-btn" onClick={() => takeAction('Approved')}><CheckCircle size={14} /> APPROVE</button>
+                                        <button className="hil-reject-btn" onClick={() => takeAction('Rejected')}><XCircle size={14} /> REJECT</button>
+                                        <button className="hil-modify-btn" onClick={() => takeAction('Modified')}><Edit3 size={14} /> MODIFY</button>
+                                    </div>
+
+                                    {/* Recent Decisions */}
+                                    <div style={{ marginTop: '20px' }}>
+                                        <div className="hil-detail-label"><Clock size={11} style={{ marginRight: '4px' }} />RECENT DECISIONS</div>
+                                        {decisionLog.slice(0, 5).map((d, i) => (
+                                            <div className="hil-summary-row" key={i}>
+                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{d.ts} · {d.id}</span>
+                                                <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{d.train}</span>
+                                                <span className={`text-${d.action === 'Approved' ? 'green' : d.action === 'Rejected' ? 'red' : 'yellow'}`} style={{ fontSize: '10px', fontWeight: '700' }}>{d.action}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-
-                                <div className="hil-detail-section">
-                                    <div className="hil-detail-label"><Zap size={12} className="text-blue" /> PROPOSED ACTION</div>
-                                    <p className="hil-detail-body">{selectedRec.action}</p>
-                                </div>
-
-                                <div className="hil-detail-section">
-                                    <div className="hil-detail-label text-blue">AI REASONING</div>
-                                    <div className="hil-reasoning-box">{selectedRec.reasoning}</div>
-                                </div>
-
-                                <div className="hil-metrics-row">
-                                    <div className="hil-metric-card">
-                                        <span className="hil-metric-label">DELAY REDUCTION</span>
-                                        <span className="hil-metric-val text-green">−{selectedRec.delay_reduction}</span>
-                                    </div>
-                                    <div className="hil-metric-card">
-                                        <span className="hil-metric-label">AI CONFIDENCE</span>
-                                        <span className="hil-metric-val text-blue">{selectedRec.confidence}%</span>
-                                    </div>
-                                    <div className="hil-metric-card">
-                                        <span className="hil-metric-label">IMPACTED TRAINS</span>
-                                        <span className="hil-metric-val">{selectedRec.trains.length}</span>
-                                    </div>
-                                </div>
-
-                                {!decisions[selectedRec.id] ? (
-                                    <div className="hil-detail-actions">
-                                        <button className="hil-detail-btn approve" onClick={() => decide(selectedRec.id, 'approved')}>
-                                            <CheckCircle size={15} /> APPROVE RECOMMENDATION
-                                        </button>
-                                        <button className="hil-detail-btn reject" onClick={() => decide(selectedRec.id, 'rejected')}>
-                                            <XCircle size={15} /> REJECT
-                                        </button>
-                                        <button className="hil-detail-btn modify" onClick={() => decide(selectedRec.id, 'modified')}>
-                                            <Edit size={15} /> MODIFY & APPROVE
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className={`hil-decided-notice ${decisions[selectedRec.id]}`}>
-                                        Decision recorded: {decisions[selectedRec.id].toUpperCase()}
-                                    </div>
-                                )}
                             </div>
-                        </div>
-                    ) : (
-                        <div className="hil-empty-detail">
-                            <Zap size={32} className="text-blue" />
-                            <p>Select a recommendation to view details and approve or reject.</p>
                         </div>
                     )}
                 </div>
             </main>
 
-            {/* Fixed Sidebar */}
+            {/* Right Sidebar */}
             <aside className="universal-right-sidebar">
                 <div className="dashboard-sidebar-content">
                     <div className="card sidebar-tool-card">
-                        <div className="sidebar-tool-header blue-glow">
-                            <CheckCircle size={16} />
-                            <h2>DECISION SUMMARY</h2>
-                        </div>
-                        <div className="tool-content">
-                            <div className="hil-summary-row">
-                                <span>Pending</span>
-                                <span className="text-yellow">{recommendations.filter(r => !decisions[r.id]).length}</span>
-                            </div>
-                            <div className="hil-summary-row">
-                                <span>Approved</span>
-                                <span className="text-green">{Object.values(decisions).filter(d => d === 'approved').length}</span>
-                            </div>
-                            <div className="hil-summary-row">
-                                <span>Rejected</span>
-                                <span className="text-red">{Object.values(decisions).filter(d => d === 'rejected').length}</span>
-                            </div>
-                            <div className="hil-summary-row">
-                                <span>Modified</span>
-                                <span className="text-blue">{Object.values(decisions).filter(d => d === 'modified').length}</span>
-                            </div>
-                            <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '12px', paddingTop: '12px' }}>
-                                <div className="hil-summary-row">
-                                    <span>Total Delay Savings</span>
-                                    <span className="text-green">
-                                        −{recommendations.filter(r => decisions[r.id] === 'approved').reduce((acc, r) => acc + parseInt(r.delay_reduction), 0)} min
-                                    </span>
-                                </div>
+                        <div className="sidebar-tool-header blue-glow"><TrendingUp size={16} /><h2>APPROVAL ANALYTICS</h2></div>
+                        <div className="tool-content" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <DonutChart pct={81} color="#20c997" />
+                            <div>
+                                <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-main)' }}>81% Approval Rate</div>
+                                <div className="text-muted" style={{ fontSize: '10px', lineHeight: '1.6' }}>34 approved · 8 rejected<br />61 auto-resolved today</div>
                             </div>
                         </div>
                     </div>
-
                     <div className="card sidebar-tool-card">
-                        <div className="sidebar-tool-header">
-                            <AlertTriangle size={14} className="text-yellow" />
-                            <h2 className="text-yellow">OPERATOR GUIDE</h2>
-                        </div>
+                        <div className="sidebar-tool-header blue-glow"><Brain size={16} /><h2>RAILSYNC AI SUMMARY</h2></div>
                         <div className="tool-content">
-                            <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-                                All AI recommendations require human sign-off before execution. High-priority actions must be reviewed within 5 minutes. Rejecting an action logs the rationale for audit.
+                            <div className="tool-minor-item tool-action-box highlight">
+                                <div className="tool-sub-title">GENAI BATCH INSIGHT</div>
+                                <p className="text-muted-light" style={{ fontSize: '11px', lineHeight: '1.5' }}>6 of today's 10 CRITICAL decisions involve NDLS PF-02 bottleneck. AI recommends a platform-policy review meeting before tomorrow's peak.</p>
+                                <button className="tool-action-btn primary">SCHEDULE REVIEW</button>
+                            </div>
+                            <div className="tool-minor-item">
+                                <div className="tool-sub-title">OPERATOR PERFORMANCE</div>
+                                <p className="text-muted-light" style={{ fontSize: '11px', lineHeight: '1.5' }}>Rajesh Kumar avg. decision time: 42s. AI recommendations accepted 88% of the time — highest in team.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="card sidebar-tool-card">
+                        <div className="sidebar-tool-header"><AlertTriangle size={14} className="text-yellow" /><h2 className="text-yellow">OPERATOR GUIDE</h2></div>
+                        <div className="tool-content">
+                            <p className="text-muted" style={{ fontSize: '11px', lineHeight: '1.6' }}>
+                                <b>APPROVE</b> — Executes AI plan immediately.<br />
+                                <b>REJECT</b> — Logs override; status quo maintained.<br />
+                                <b>MODIFY</b> — Opens parameter editor for custom plan.<br /><br />
+                                All decisions are immutably logged on the audit ledger.
                             </p>
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     Train, LayoutDashboard, Calendar, MapPin, AlertTriangle,
-    MessageSquare, MonitorPlay, Activity, FileText, Settings, ShieldCheck
+    MessageSquare, MonitorPlay, Activity, FileText, ShieldCheck
 } from 'lucide-react';
 
 const navItems = [
@@ -24,8 +24,8 @@ export default function Sidebar({ currentView, setCurrentView }) {
                     <Train size={24} color="#00a8ff" />
                 </div>
                 <div>
-                    <h1 className="app-title">AI Railway</h1>
-                    <p className="app-subtitle">CONTROL CENTER</p>
+                    <h1 className="app-title">RailSync</h1>
+                    <p className="app-subtitle">AI OPERATIONS</p>
                 </div>
             </div>
 
@@ -51,9 +51,6 @@ export default function Sidebar({ currentView, setCurrentView }) {
                         <span className="user-role">Chief Controller · NDLS</span>
                     </div>
                 </div>
-                <button className="settings-btn">
-                    <Settings size={18} />
-                </button>
             </div>
         </aside>
     );
